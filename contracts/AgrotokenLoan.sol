@@ -9,6 +9,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract AgrotokenLoan is Initializable {
   address public admin;
+  mapping(address => bool) public allowedTokens;
+  mapping(string => address) public tokenAlias;
 
   function initialize() public initializer{
     admin = msg.sender;
@@ -21,5 +23,12 @@ contract AgrotokenLoan is Initializable {
     // Tasas de Interes (tasa de interes de prestamo a finalizacion o pago en fecha, tasa por pago anticiapado con un a funcion)
     // Token
     // Estado
+  }
+
+  function addToken(string memory name, address token) public {   // adminOnly
+    require(token != address(0), "Token address cannot be zero address");
+    require(!allowedTokens[token] && tokenAlias[name]== address(0), "Token already added");
+    allowedTokens[token] = true;
+    tokenAlias[name] = token;
   }
 }

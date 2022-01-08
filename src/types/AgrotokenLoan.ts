@@ -18,18 +18,36 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface AgrotokenLoanInterface extends utils.Interface {
   functions: {
+    "addToken(string,address)": FunctionFragment;
     "admin()": FunctionFragment;
+    "allowedTokens(address)": FunctionFragment;
     "initialize()": FunctionFragment;
+    "tokenAlias(string)": FunctionFragment;
   };
 
+  encodeFunctionData(
+    functionFragment: "addToken",
+    values: [string, string]
+  ): string;
   encodeFunctionData(functionFragment: "admin", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "allowedTokens",
+    values: [string]
+  ): string;
   encodeFunctionData(
     functionFragment: "initialize",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "tokenAlias", values: [string]): string;
 
+  decodeFunctionResult(functionFragment: "addToken", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "allowedTokens",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "tokenAlias", data: BytesLike): Result;
 
   events: {};
 }
@@ -61,40 +79,96 @@ export interface AgrotokenLoan extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    addToken(
+      name: string,
+      token: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     admin(overrides?: CallOverrides): Promise<[string]>;
+
+    allowedTokens(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    tokenAlias(arg0: string, overrides?: CallOverrides): Promise<[string]>;
   };
 
+  addToken(
+    name: string,
+    token: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   admin(overrides?: CallOverrides): Promise<string>;
+
+  allowedTokens(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
   initialize(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  tokenAlias(arg0: string, overrides?: CallOverrides): Promise<string>;
+
   callStatic: {
+    addToken(
+      name: string,
+      token: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     admin(overrides?: CallOverrides): Promise<string>;
 
+    allowedTokens(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+
     initialize(overrides?: CallOverrides): Promise<void>;
+
+    tokenAlias(arg0: string, overrides?: CallOverrides): Promise<string>;
   };
 
   filters: {};
 
   estimateGas: {
+    addToken(
+      name: string,
+      token: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     admin(overrides?: CallOverrides): Promise<BigNumber>;
+
+    allowedTokens(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    tokenAlias(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
+    addToken(
+      name: string,
+      token: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    allowedTokens(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    tokenAlias(
+      arg0: string,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };
 }
