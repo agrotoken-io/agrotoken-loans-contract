@@ -4,6 +4,7 @@
 import {
   BaseContract,
   BigNumber,
+  BigNumberish,
   BytesLike,
   CallOverrides,
   ContractTransaction,
@@ -12,7 +13,7 @@ import {
   Signer,
   utils,
 } from "ethers";
-import { FunctionFragment, Result } from "@ethersproject/abi";
+import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
@@ -21,7 +22,9 @@ export interface AgrotokenLoanInterface extends utils.Interface {
     "addToken(string,address)": FunctionFragment;
     "admin()": FunctionFragment;
     "allowedTokens(address)": FunctionFragment;
+    "createLoan(bytes32,string,address,uint24,uint8,uint256,uint256,string,uint8)": FunctionFragment;
     "initialize()": FunctionFragment;
+    "loans(uint256)": FunctionFragment;
     "tokenAlias(string)": FunctionFragment;
   };
 
@@ -35,9 +38,24 @@ export interface AgrotokenLoanInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
+    functionFragment: "createLoan",
+    values: [
+      BytesLike,
+      string,
+      string,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      string,
+      BigNumberish
+    ]
+  ): string;
+  encodeFunctionData(
     functionFragment: "initialize",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "loans", values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: "tokenAlias", values: [string]): string;
 
   decodeFunctionResult(functionFragment: "addToken", data: BytesLike): Result;
@@ -46,11 +64,30 @@ export interface AgrotokenLoanInterface extends utils.Interface {
     functionFragment: "allowedTokens",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "createLoan", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "loans", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "tokenAlias", data: BytesLike): Result;
 
-  events: {};
+  events: {
+    "LoanCreated(bytes32,address,address,uint256,address)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "LoanCreated"): EventFragment;
 }
+
+export type LoanCreatedEvent = TypedEvent<
+  [string, string, string, BigNumber, string],
+  {
+    loanHash: string;
+    lender: string;
+    beneficiary: string;
+    tokens: BigNumber;
+    collateral: string;
+  }
+>;
+
+export type LoanCreatedEventFilter = TypedEventFilter<LoanCreatedEvent>;
 
 export interface AgrotokenLoan extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -89,9 +126,24 @@ export interface AgrotokenLoan extends BaseContract {
 
     allowedTokens(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
+    createLoan(
+      hash: BytesLike,
+      collateralName: string,
+      beneficiary_: string,
+      dueIn_: BigNumberish,
+      interest_: BigNumberish,
+      fiatTotal_: BigNumberish,
+      tokenTotal_: BigNumberish,
+      localCurrency_: string,
+      liquidationLimitPercentage_: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
 
     tokenAlias(arg0: string, overrides?: CallOverrides): Promise<[string]>;
   };
@@ -106,9 +158,24 @@ export interface AgrotokenLoan extends BaseContract {
 
   allowedTokens(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
+  createLoan(
+    hash: BytesLike,
+    collateralName: string,
+    beneficiary_: string,
+    dueIn_: BigNumberish,
+    interest_: BigNumberish,
+    fiatTotal_: BigNumberish,
+    tokenTotal_: BigNumberish,
+    localCurrency_: string,
+    liquidationLimitPercentage_: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   initialize(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
   tokenAlias(arg0: string, overrides?: CallOverrides): Promise<string>;
 
@@ -123,12 +190,42 @@ export interface AgrotokenLoan extends BaseContract {
 
     allowedTokens(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
+    createLoan(
+      hash: BytesLike,
+      collateralName: string,
+      beneficiary_: string,
+      dueIn_: BigNumberish,
+      interest_: BigNumberish,
+      fiatTotal_: BigNumberish,
+      tokenTotal_: BigNumberish,
+      localCurrency_: string,
+      liquidationLimitPercentage_: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     initialize(overrides?: CallOverrides): Promise<void>;
+
+    loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
     tokenAlias(arg0: string, overrides?: CallOverrides): Promise<string>;
   };
 
-  filters: {};
+  filters: {
+    "LoanCreated(bytes32,address,address,uint256,address)"(
+      loanHash?: BytesLike | null,
+      lender?: string | null,
+      beneficiary?: string | null,
+      tokens?: null,
+      collateral?: null
+    ): LoanCreatedEventFilter;
+    LoanCreated(
+      loanHash?: BytesLike | null,
+      lender?: string | null,
+      beneficiary?: string | null,
+      tokens?: null,
+      collateral?: null
+    ): LoanCreatedEventFilter;
+  };
 
   estimateGas: {
     addToken(
@@ -141,9 +238,24 @@ export interface AgrotokenLoan extends BaseContract {
 
     allowedTokens(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+    createLoan(
+      hash: BytesLike,
+      collateralName: string,
+      beneficiary_: string,
+      dueIn_: BigNumberish,
+      interest_: BigNumberish,
+      fiatTotal_: BigNumberish,
+      tokenTotal_: BigNumberish,
+      localCurrency_: string,
+      liquidationLimitPercentage_: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
     tokenAlias(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
   };
@@ -162,8 +274,26 @@ export interface AgrotokenLoan extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    createLoan(
+      hash: BytesLike,
+      collateralName: string,
+      beneficiary_: string,
+      dueIn_: BigNumberish,
+      interest_: BigNumberish,
+      fiatTotal_: BigNumberish,
+      tokenTotal_: BigNumberish,
+      localCurrency_: string,
+      liquidationLimitPercentage_: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    loans(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     tokenAlias(
