@@ -139,8 +139,8 @@ contract Agrotoken is IERC20 {
 
     uint256 override public totalSupply;
     string constant public name = "Soy Agrotoken Argentina";
-    uint8 constant public decimals = 18;
-    uint8 constant public feeDecimals = 18;
+    uint8 constant public decimals = 4;
+    uint8 constant public feeDecimals = 4;
     uint256 constant public MAX_AGROTOKEN_FEE = (2 * (10**feeDecimals));
     string constant public symbol = "SOYA";
     address public admin;

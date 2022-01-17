@@ -23,9 +23,3 @@ export const mint =  async (contract:Agrotoken, address:string, amount:number) =
   const receipt = await tx.wait(0)
   return receipt
 }
-
-export const deployAndMint = async (address:string, amount:number): Promise<Agrotoken> => {
-  const token = await deployToken()
-  await mint(token, address, amount)
-  return token
-}
