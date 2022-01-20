@@ -6,12 +6,31 @@ This work is unlicensed.
 pragma solidity 0.8.7;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
-contract AgrotokenLoan is Initializable {
-  address public admin;
-  mapping(address => bool) public allowedTokens;
-  mapping(string => address) public tokenAlias;
+contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
+  mapping(IERC20Upgradeable => bool) public allowedTokens;
+
+  mapping(bytes32 => IERC20Upgradeable) collateral;
+  mapping(bytes32 => address) lender;
+  mapping(bytes32 => address) beneficiary;
+  mapping(bytes32 => uint256) dueSeconds;
+  mapping(bytes32 => uint256) dueTimestamp;
+  mapping(bytes32 => uint8) interest;
+  mapping(bytes32 => uint8) earlyInterest;
+  mapping(bytes32 => uint256) fiatTotal;
+  mapping(bytes32 => LocalCurrencies) localCurrency;
+  mapping(bytes32 => uint8) liquidationLimitPercentage;
+  mapping(bytes32 => uint256) tokenTotal;
+  mapping(bytes32 => LoanState) state;
+
+  uint256 public constant PERCENT_DECIMAL = 10 ** 4;
+
+  enum LocalCurrencies {
+    ARS
+  }
 
   enum LoanState {
     NOT_EXISTENT,
@@ -26,71 +45,129 @@ contract AgrotokenLoan is Initializable {
     PAID_TOKENS_LOW_COLLATERAL
   }
 
-  mapping(bytes32 => address) collateral;
-  mapping(bytes32 => address) lender;
-  mapping(bytes32 => address) beneficiary;
-  mapping(bytes32 => uint24) dueIn;
-  mapping(bytes32 => uint8) interest;
-  mapping(bytes32 => uint256) fiatTotal;
-  mapping(bytes32 => string) localCurrency;
-  mapping(bytes32 => uint8) liquidationLimitPercentage;
-  mapping(bytes32 => uint256) tokenTotal;
-  mapping(bytes32 => LoanState) state;
-  mapping(bytes32 => uint256) created;
-  mapping(bytes32 => uint256) funded;
+  event LoanStatusUpdate(bytes32 indexed loanHash, LoanState indexed status);
 
-  bytes32[] public loans;
-
-  event LoanCreated(bytes32 indexed loanHash, address indexed lender, address indexed beneficiary, uint256 tokens, address collateral);
-
-  function initialize() public initializer{
-    admin = msg.sender;
-    console.log("Deploying AgrotokenLoan", admin);
+  function initialize(address owner) public initializer {
+    __Ownable_init();
+    _transferOwnership(owner);
   }
 
-  function addToken(string memory name, address token) public {   // adminOnly
-    require(token != address(0), "Token address cannot be zero address");
-    bytes memory tempEmptyStringTest = bytes(name);
-    require(tempEmptyStringTest.length != 0, "Invalid token name");
-    require(!allowedTokens[token] && tokenAlias[name]== address(0), "Token already added");
-    allowedTokens[token] = true;
-    tokenAlias[name] = token;
+  function updateAllowedToken(IERC20Upgradeable token, bool allowed) public onlyOwner {   // adminOnly
+    require(token != IERC20Upgradeable(address(0)), "Token address cannot be zero address");
+    allowedTokens[token] = allowed;
   }
 
   function createLoan(
     bytes32 hash,
-    string memory collateralName,
+    IERC20Upgradeable collateral_,
     address beneficiary_,
-    uint24 dueIn_,
+    uint256 dueSeconds_,
     uint8 interest_,
+    uint8 earlyInterest_,
     uint256 fiatTotal_,
     uint256 tokenTotal_,
-    string memory localCurrency_,
+    LocalCurrencies localCurrency_,
     uint8 liquidationLimitPercentage_
   ) public {
-    
-    require(allowedTokens[tokenAlias[collateralName]], "Token not allowed");
+    require(allowedTokens[collateral_], "Token not allowed");
+    require(state[hash] == LoanState.NOT_EXISTENT, "Loan already registered");
     require(beneficiary_ != address(0), "Beneficiary cannot be zero address");
     require(beneficiary_ != msg.sender, "Beneficiary is invalid");
-    require(fiatTotal_!=0 && tokenTotal_!=0 && dueIn_!=0, "Amounts cannot be zero");
+    require(fiatTotal_!=0 && tokenTotal_!=0 && dueSeconds_!=0, "Amounts cannot be zero");
 
-    bytes memory tempEmptyStringTest = bytes(localCurrency_);
-    require(tempEmptyStringTest.length != 0, "Invalid local currency");
-
-    address collateral_ = tokenAlias[collateralName];
-    
     lender[hash] = msg.sender;
     collateral[hash] = collateral_;
     beneficiary[hash] = beneficiary_;
-    dueIn[hash] = dueIn_;
+    dueSeconds[hash] = dueSeconds_;
     interest[hash] = interest_;
+    earlyInterest[hash] = earlyInterest_;
     fiatTotal[hash] = fiatTotal_;
     localCurrency[hash] = localCurrency_;
     tokenTotal[hash] = tokenTotal_;
     liquidationLimitPercentage[hash] = liquidationLimitPercentage_;
     state[hash] = LoanState.CREATED;
-    created[hash] = block.timestamp;
-    loans.push(hash);
-    emit LoanCreated(hash, msg.sender, beneficiary_, tokenTotal_, collateral_);
+
+    emit LoanStatusUpdate(hash, state[hash]);
   }
+
+  function cancelLoan(bytes32 hash) external {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.CREATED, "Invalid loan state");
+
+    state[hash] = LoanState.CANCELLED;
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function acceptLoan(bytes32 hash) external {
+    require(beneficiary[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.CREATED, "Invalid loan state");
+
+    collateral[hash].transferFrom(msg.sender, address(this), tokenTotal[hash]);
+
+    state[hash] = LoanState.COLLATERALIZED;
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function activateLoan(bytes32 hash) external {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.COLLATERALIZED, "Invalid state");
+
+    state[hash] = LoanState.ACTIVE;
+    dueTimestamp[hash] = block.timestamp + dueSeconds[hash];
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function computeBaseInterest(bytes32 hash, uint256 atTimestamp) public view returns(uint256) {
+    require(state[hash] == LoanState.ACTIVE, "Invalid state");
+    uint256 dueMargin;
+    if (atTimestamp >  dueTimestamp[hash]) {
+      dueMargin = dueSeconds[hash] + (atTimestamp - dueTimestamp[hash]);
+    } else {
+      dueMargin = dueSeconds[hash] - (dueTimestamp[hash] - atTimestamp);
+    }
+    return ((fiatTotal[hash] * interest[hash]) / PERCENT_DECIMAL) * dueMargin / 365 days;
+  }
+
+  function computeEarlyInterest(bytes32 hash, uint256 atTimestamp) public view returns(uint256) {
+    require(state[hash] == LoanState.ACTIVE, "Invalid state");
+    if (dueTimestamp[hash] < atTimestamp) {
+      return 0;
+    }
+    return ((fiatTotal[hash] * earlyInterest[hash]) / PERCENT_DECIMAL) * (dueTimestamp[hash] - atTimestamp) / 365 days;
+  }
+
+  function paidInFiat(bytes32 hash) external {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.ACTIVE, "Invalid state");
+
+    uint256 maxDueTimestamp = dueTimestamp[hash] + 1 days;
+    require(maxDueTimestamp >= block.timestamp, "Loan due");
+
+    if (dueTimestamp[hash] >= block.timestamp) {
+      state[hash] = LoanState.PAID_FIAT_EARLY;
+    } else {
+      state[hash] = LoanState.PAID_FIAT_DUE;
+    }
+
+    collateral[hash].transfer(beneficiary[hash], tokenTotal[hash]);
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function paidInToken(bytes32 hash, uint256) external {
+    require(beneficiary[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.ACTIVE, "Invalid state");
+
+    if (dueTimestamp[hash] >= block.timestamp){
+      state[hash] = LoanState.PAID_TOKENS_EARLY;
+    } else {
+      state[hash] = LoanState.PAID_TOKENS_DUE;
+    }
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
 }
