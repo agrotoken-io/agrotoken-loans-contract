@@ -8,8 +8,10 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
 contract AgrotokenLoan is Initializable, OwnableUpgradeable {
+  using ECDSAUpgradeable for bytes32;
 
   mapping(IERC20Upgradeable => bool) public allowedTokens;
 
@@ -122,11 +124,9 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
   function computeBaseInterest(bytes32 hash, uint256 atTimestamp) public view returns(uint256) {
     require(state[hash] == LoanState.ACTIVE, "Invalid state");
-    uint256 dueMargin;
-    if (atTimestamp >  dueTimestamp[hash]) {
-      dueMargin = dueSeconds[hash] + (atTimestamp - dueTimestamp[hash]);
-    } else {
-      dueMargin = dueSeconds[hash] - (dueTimestamp[hash] - atTimestamp);
+    uint256 dueMargin = dueSeconds[hash];
+    if (atTimestamp <  dueTimestamp[hash]) {
+      dueMargin = dueMargin - (dueTimestamp[hash] - atTimestamp);
     }
     return ((fiatTotal[hash] * interest[hash]) / PERCENT_DECIMAL) * dueMargin / 365 days;
   }
@@ -157,17 +157,46 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     emit LoanStatusUpdate(hash, state[hash]);
   }
 
-  function paidInToken(bytes32 hash, uint256) external {
-    require(beneficiary[hash] == msg.sender, "Invalid sender");
+  function _paidInToken(bytes32 hash, uint256 tokenPrice) internal {
     require(state[hash] == LoanState.ACTIVE, "Invalid state");
+
+    uint256 fee = computeBaseInterest(hash, block.timestamp + 7 days);
 
     if (dueTimestamp[hash] >= block.timestamp){
       state[hash] = LoanState.PAID_TOKENS_EARLY;
+      fee = fee + computeEarlyInterest(hash, block.timestamp);
     } else {
       state[hash] = LoanState.PAID_TOKENS_DUE;
     }
 
+    uint256 tokensForLender = ((fiatTotal[hash] + fee) * PERCENT_DECIMAL) / tokenPrice;
+    require(tokenTotal[hash] > tokensForLender, "Loan dafualted");
+    uint256 tokensForBeneficiary = tokenTotal[hash] - tokensForLender;
+
+    require(
+      collateral[hash].transfer(lender[hash], tokensForLender)
+      &&
+      collateral[hash].transfer(beneficiary[hash], tokensForBeneficiary)
+    ,"Can not transfer");
+
     emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function paidInToken(bytes32 hash, uint256 tokenPrice, uint256 priceExpiry, bytes memory bankSignature) external {
+    require(beneficiary[hash] == msg.sender, "Invalid sender");
+    require(priceExpiry >= block.timestamp, "Price expired");
+
+    bytes32 priceHash = keccak256(abi.encode(tokenPrice, priceExpiry));
+    require(priceHash.recover(bankSignature) == lender[hash], "Invalid signature");
+    _paidInToken(hash, tokenPrice);
+  }
+
+
+  function executeDueLoan(bytes32 hash, uint256 tokenPrice) external {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(dueTimestamp[hash] > block.timestamp, "Loan not due");
+
+    _paidInToken(hash, tokenPrice);
   }
 
 }
