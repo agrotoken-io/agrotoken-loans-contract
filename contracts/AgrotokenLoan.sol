@@ -20,15 +20,15 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
   mapping(bytes32 => address) beneficiary;
   mapping(bytes32 => uint256) dueSeconds;
   mapping(bytes32 => uint256) dueTimestamp;
-  mapping(bytes32 => uint8) interest;
-  mapping(bytes32 => uint8) earlyInterest;
+  mapping(bytes32 => uint256) interest;
+  mapping(bytes32 => uint256) earlyInterest;
   mapping(bytes32 => uint256) fiatTotal;
   mapping(bytes32 => LocalCurrencies) localCurrency;
-  mapping(bytes32 => uint8) liquidationLimitPercentage;
+  mapping(bytes32 => uint256) liquidationLimitPercentage;
   mapping(bytes32 => uint256) tokenTotal;
   mapping(bytes32 => LoanState) state;
 
-  uint256 public constant PERCENT_DECIMAL = 10 ** 4;
+  uint256 public constant DECIMAL_FACTOR = 10 ** 4;
 
   enum LocalCurrencies {
     ARS
@@ -112,12 +112,13 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     emit LoanStatusUpdate(hash, state[hash]);
   }
 
-  function activateLoan(bytes32 hash) external {
+  function activateLoan(bytes32 hash, uint256 activatedAt) external {
     require(lender[hash] == msg.sender, "Invalid sender");
     require(state[hash] == LoanState.COLLATERALIZED, "Invalid state");
+    require(activatedAt <= block.timestamp, "Invalid activation timestamp");
 
     state[hash] = LoanState.ACTIVE;
-    dueTimestamp[hash] = block.timestamp + dueSeconds[hash];
+    dueTimestamp[hash] = activatedAt + dueSeconds[hash];
 
     emit LoanStatusUpdate(hash, state[hash]);
   }
@@ -128,7 +129,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     if (atTimestamp <  dueTimestamp[hash]) {
       dueMargin = dueMargin - (dueTimestamp[hash] - atTimestamp);
     }
-    return ((fiatTotal[hash] * interest[hash]) / PERCENT_DECIMAL) * dueMargin / 365 days;
+    return ((fiatTotal[hash] * interest[hash]) / DECIMAL_FACTOR) * dueMargin / 365 days;
   }
 
   function computeEarlyInterest(bytes32 hash, uint256 atTimestamp) public view returns(uint256) {
@@ -136,7 +137,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     if (dueTimestamp[hash] < atTimestamp) {
       return 0;
     }
-    return ((fiatTotal[hash] * earlyInterest[hash]) / PERCENT_DECIMAL) * (dueTimestamp[hash] - atTimestamp) / 365 days;
+    return ((fiatTotal[hash] * earlyInterest[hash]) / DECIMAL_FACTOR) * (dueTimestamp[hash] - atTimestamp) / 365 days;
   }
 
   function paidInFiat(bytes32 hash) external {
@@ -169,7 +170,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
       state[hash] = LoanState.PAID_TOKENS_DUE;
     }
 
-    uint256 tokensForLender = ((fiatTotal[hash] + fee) * PERCENT_DECIMAL) / tokenPrice;
+    uint256 tokensForLender = ((fiatTotal[hash] + fee) * DECIMAL_FACTOR) / tokenPrice;
     require(tokenTotal[hash] > tokensForLender, "Loan dafualted");
     uint256 tokensForBeneficiary = tokenTotal[hash] - tokensForLender;
 
@@ -182,12 +183,18 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     emit LoanStatusUpdate(hash, state[hash]);
   }
 
+  function verifyPriceSignature(address signer, uint256 price, uint256 validUntil, uint256 timestamp, bytes memory signature) public pure returns (bool) {
+    if (validUntil >= timestamp){
+      bytes32 priceHash = keccak256(abi.encodePacked(price, validUntil)).toEthSignedMessageHash();
+      return priceHash.recover(signature) == signer;
+    }
+    return false;
+  }
+
   function paidInToken(bytes32 hash, uint256 tokenPrice, uint256 priceExpiry, bytes memory bankSignature) external {
     require(beneficiary[hash] == msg.sender, "Invalid sender");
-    require(priceExpiry >= block.timestamp, "Price expired");
+    require(verifyPriceSignature(lender[hash], tokenPrice, priceExpiry, block.timestamp, bankSignature), "Invalid signature");
 
-    bytes32 priceHash = keccak256(abi.encode(tokenPrice, priceExpiry));
-    require(priceHash.recover(bankSignature) == lender[hash], "Invalid signature");
     _paidInToken(hash, tokenPrice);
   }
 
