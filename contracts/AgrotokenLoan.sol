@@ -64,12 +64,12 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     IERC20Upgradeable collateral_,
     address beneficiary_,
     uint256 dueSeconds_,
-    uint8 interest_,
-    uint8 earlyInterest_,
+    uint256 interest_,
+    uint256 earlyInterest_,
     uint256 fiatTotal_,
     uint256 tokenTotal_,
     LocalCurrencies localCurrency_,
-    uint8 liquidationLimitPercentage_
+    uint256 liquidationLimitPercentage_
   ) public {
     require(allowedTokens[collateral_], "Token not allowed");
     require(state[hash] == LoanState.NOT_EXISTENT, "Loan already registered");
