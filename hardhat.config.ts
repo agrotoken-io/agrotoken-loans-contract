@@ -56,6 +56,9 @@ export default {
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
     },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/b299f67faca2443fa5708fbbd0a7e6aa`
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
     }

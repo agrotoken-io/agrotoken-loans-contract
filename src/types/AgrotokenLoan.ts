@@ -19,23 +19,52 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface AgrotokenLoanInterface extends utils.Interface {
   functions: {
-    "addToken(string,address)": FunctionFragment;
-    "admin()": FunctionFragment;
+    "DECIMAL_FACTOR()": FunctionFragment;
+    "acceptLoan(bytes32)": FunctionFragment;
+    "activateLoan(bytes32,uint256)": FunctionFragment;
     "allowedTokens(address)": FunctionFragment;
-    "createLoan(bytes32,string,address,uint24,uint8,uint256,uint256,string,uint8)": FunctionFragment;
-    "initialize()": FunctionFragment;
-    "loans(uint256)": FunctionFragment;
-    "tokenAlias(string)": FunctionFragment;
+    "cancelLoan(bytes32)": FunctionFragment;
+    "computeBaseInterest(bytes32,uint256)": FunctionFragment;
+    "computeEarlyInterest(bytes32,uint256)": FunctionFragment;
+    "createLoan(bytes32,address,address,uint256,uint8,uint8,uint256,uint256,uint8,uint8)": FunctionFragment;
+    "executeDueLoan(bytes32,uint256)": FunctionFragment;
+    "initialize(address)": FunctionFragment;
+    "owner()": FunctionFragment;
+    "paidInFiat(bytes32)": FunctionFragment;
+    "paidInToken(bytes32,uint256,uint256,bytes)": FunctionFragment;
+    "renounceOwnership()": FunctionFragment;
+    "transferOwnership(address)": FunctionFragment;
+    "updateAllowedToken(address,bool)": FunctionFragment;
+    "verifyPriceSignature(address,uint256,uint256,uint256,bytes)": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "addToken",
-    values: [string, string]
+    functionFragment: "DECIMAL_FACTOR",
+    values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "admin", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "acceptLoan",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "activateLoan",
+    values: [BytesLike, BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "allowedTokens",
     values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "cancelLoan",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "computeBaseInterest",
+    values: [BytesLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "computeEarlyInterest",
+    values: [BytesLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "createLoan",
@@ -47,47 +76,117 @@ export interface AgrotokenLoanInterface extends utils.Interface {
       BigNumberish,
       BigNumberish,
       BigNumberish,
-      string,
+      BigNumberish,
+      BigNumberish,
       BigNumberish
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "initialize",
+    functionFragment: "executeDueLoan",
+    values: [BytesLike, BigNumberish]
+  ): string;
+  encodeFunctionData(functionFragment: "initialize", values: [string]): string;
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "paidInFiat",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "paidInToken",
+    values: [BytesLike, BigNumberish, BigNumberish, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "loans", values: [BigNumberish]): string;
-  encodeFunctionData(functionFragment: "tokenAlias", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "transferOwnership",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "updateAllowedToken",
+    values: [string, boolean]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "verifyPriceSignature",
+    values: [string, BigNumberish, BigNumberish, BigNumberish, BytesLike]
+  ): string;
 
-  decodeFunctionResult(functionFragment: "addToken", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "DECIMAL_FACTOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "acceptLoan", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "activateLoan",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "allowedTokens",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "cancelLoan", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "computeBaseInterest",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "computeEarlyInterest",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "createLoan", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "executeDueLoan",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "loans", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "tokenAlias", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "paidInFiat", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "paidInToken",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "updateAllowedToken",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "verifyPriceSignature",
+    data: BytesLike
+  ): Result;
 
   events: {
-    "LoanCreated(bytes32,address,address,uint256,address)": EventFragment;
+    "LoanStatusUpdate(bytes32,uint8)": EventFragment;
+    "OwnershipTransferred(address,address)": EventFragment;
   };
 
-  getEvent(nameOrSignatureOrTopic: "LoanCreated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "LoanStatusUpdate"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
 }
 
-export type LoanCreatedEvent = TypedEvent<
-  [string, string, string, BigNumber, string],
-  {
-    loanHash: string;
-    lender: string;
-    beneficiary: string;
-    tokens: BigNumber;
-    collateral: string;
-  }
+export type LoanStatusUpdateEvent = TypedEvent<
+  [string, number],
+  { loanHash: string; status: number }
 >;
 
-export type LoanCreatedEventFilter = TypedEventFilter<LoanCreatedEvent>;
+export type LoanStatusUpdateEventFilter =
+  TypedEventFilter<LoanStatusUpdateEvent>;
+
+export type OwnershipTransferredEvent = TypedEvent<
+  [string, string],
+  { previousOwner: string; newOwner: string }
+>;
+
+export type OwnershipTransferredEventFilter =
+  TypedEventFilter<OwnershipTransferredEvent>;
 
 export interface AgrotokenLoan extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -116,188 +215,498 @@ export interface AgrotokenLoan extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    addToken(
-      name: string,
-      token: string,
+    DECIMAL_FACTOR(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    acceptLoan(
+      hash: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    admin(overrides?: CallOverrides): Promise<[string]>;
+    activateLoan(
+      hash: BytesLike,
+      activatedAt: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     allowedTokens(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
+    cancelLoan(
+      hash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    computeBaseInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    computeEarlyInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     createLoan(
       hash: BytesLike,
-      collateralName: string,
+      collateral_: string,
       beneficiary_: string,
-      dueIn_: BigNumberish,
+      dueSeconds_: BigNumberish,
       interest_: BigNumberish,
+      earlyInterest_: BigNumberish,
       fiatTotal_: BigNumberish,
       tokenTotal_: BigNumberish,
-      localCurrency_: string,
+      localCurrency_: BigNumberish,
       liquidationLimitPercentage_: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    initialize(
+    executeDueLoan(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
+    initialize(
+      owner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
-    tokenAlias(arg0: string, overrides?: CallOverrides): Promise<[string]>;
+    owner(overrides?: CallOverrides): Promise<[string]>;
+
+    paidInFiat(
+      hash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    paidInToken(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
+      priceExpiry: BigNumberish,
+      bankSignature: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    renounceOwnership(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    updateAllowedToken(
+      token: string,
+      allowed: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    verifyPriceSignature(
+      signer: string,
+      price: BigNumberish,
+      validUntil: BigNumberish,
+      timestamp: BigNumberish,
+      signature: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
   };
 
-  addToken(
-    name: string,
-    token: string,
+  DECIMAL_FACTOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  acceptLoan(
+    hash: BytesLike,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  admin(overrides?: CallOverrides): Promise<string>;
+  activateLoan(
+    hash: BytesLike,
+    activatedAt: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   allowedTokens(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
+  cancelLoan(
+    hash: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  computeBaseInterest(
+    hash: BytesLike,
+    atTimestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  computeEarlyInterest(
+    hash: BytesLike,
+    atTimestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   createLoan(
     hash: BytesLike,
-    collateralName: string,
+    collateral_: string,
     beneficiary_: string,
-    dueIn_: BigNumberish,
+    dueSeconds_: BigNumberish,
     interest_: BigNumberish,
+    earlyInterest_: BigNumberish,
     fiatTotal_: BigNumberish,
     tokenTotal_: BigNumberish,
-    localCurrency_: string,
+    localCurrency_: BigNumberish,
     liquidationLimitPercentage_: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  initialize(
+  executeDueLoan(
+    hash: BytesLike,
+    tokenPrice: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
+  initialize(
+    owner: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
-  tokenAlias(arg0: string, overrides?: CallOverrides): Promise<string>;
+  owner(overrides?: CallOverrides): Promise<string>;
+
+  paidInFiat(
+    hash: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  paidInToken(
+    hash: BytesLike,
+    tokenPrice: BigNumberish,
+    priceExpiry: BigNumberish,
+    bankSignature: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  renounceOwnership(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  transferOwnership(
+    newOwner: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  updateAllowedToken(
+    token: string,
+    allowed: boolean,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  verifyPriceSignature(
+    signer: string,
+    price: BigNumberish,
+    validUntil: BigNumberish,
+    timestamp: BigNumberish,
+    signature: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   callStatic: {
-    addToken(
-      name: string,
-      token: string,
+    DECIMAL_FACTOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    acceptLoan(hash: BytesLike, overrides?: CallOverrides): Promise<void>;
+
+    activateLoan(
+      hash: BytesLike,
+      activatedAt: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
-
-    admin(overrides?: CallOverrides): Promise<string>;
 
     allowedTokens(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
+    cancelLoan(hash: BytesLike, overrides?: CallOverrides): Promise<void>;
+
+    computeBaseInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    computeEarlyInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     createLoan(
       hash: BytesLike,
-      collateralName: string,
+      collateral_: string,
       beneficiary_: string,
-      dueIn_: BigNumberish,
+      dueSeconds_: BigNumberish,
       interest_: BigNumberish,
+      earlyInterest_: BigNumberish,
       fiatTotal_: BigNumberish,
       tokenTotal_: BigNumberish,
-      localCurrency_: string,
+      localCurrency_: BigNumberish,
       liquidationLimitPercentage_: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    initialize(overrides?: CallOverrides): Promise<void>;
+    executeDueLoan(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
-    loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
+    initialize(owner: string, overrides?: CallOverrides): Promise<void>;
 
-    tokenAlias(arg0: string, overrides?: CallOverrides): Promise<string>;
+    owner(overrides?: CallOverrides): Promise<string>;
+
+    paidInFiat(hash: BytesLike, overrides?: CallOverrides): Promise<void>;
+
+    paidInToken(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
+      priceExpiry: BigNumberish,
+      bankSignature: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    renounceOwnership(overrides?: CallOverrides): Promise<void>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    updateAllowedToken(
+      token: string,
+      allowed: boolean,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    verifyPriceSignature(
+      signer: string,
+      price: BigNumberish,
+      validUntil: BigNumberish,
+      timestamp: BigNumberish,
+      signature: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
   };
 
   filters: {
-    "LoanCreated(bytes32,address,address,uint256,address)"(
+    "LoanStatusUpdate(bytes32,uint8)"(
       loanHash?: BytesLike | null,
-      lender?: string | null,
-      beneficiary?: string | null,
-      tokens?: null,
-      collateral?: null
-    ): LoanCreatedEventFilter;
-    LoanCreated(
+      status?: BigNumberish | null
+    ): LoanStatusUpdateEventFilter;
+    LoanStatusUpdate(
       loanHash?: BytesLike | null,
-      lender?: string | null,
-      beneficiary?: string | null,
-      tokens?: null,
-      collateral?: null
-    ): LoanCreatedEventFilter;
+      status?: BigNumberish | null
+    ): LoanStatusUpdateEventFilter;
+
+    "OwnershipTransferred(address,address)"(
+      previousOwner?: string | null,
+      newOwner?: string | null
+    ): OwnershipTransferredEventFilter;
+    OwnershipTransferred(
+      previousOwner?: string | null,
+      newOwner?: string | null
+    ): OwnershipTransferredEventFilter;
   };
 
   estimateGas: {
-    addToken(
-      name: string,
-      token: string,
+    DECIMAL_FACTOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    acceptLoan(
+      hash: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    admin(overrides?: CallOverrides): Promise<BigNumber>;
+    activateLoan(
+      hash: BytesLike,
+      activatedAt: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     allowedTokens(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+    cancelLoan(
+      hash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    computeBaseInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    computeEarlyInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     createLoan(
       hash: BytesLike,
-      collateralName: string,
+      collateral_: string,
       beneficiary_: string,
-      dueIn_: BigNumberish,
+      dueSeconds_: BigNumberish,
       interest_: BigNumberish,
+      earlyInterest_: BigNumberish,
       fiatTotal_: BigNumberish,
       tokenTotal_: BigNumberish,
-      localCurrency_: string,
+      localCurrency_: BigNumberish,
       liquidationLimitPercentage_: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    executeDueLoan(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     initialize(
+      owner: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    loans(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+    owner(overrides?: CallOverrides): Promise<BigNumber>;
 
-    tokenAlias(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+    paidInFiat(
+      hash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    paidInToken(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
+      priceExpiry: BigNumberish,
+      bankSignature: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    renounceOwnership(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    updateAllowedToken(
+      token: string,
+      allowed: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    verifyPriceSignature(
+      signer: string,
+      price: BigNumberish,
+      validUntil: BigNumberish,
+      timestamp: BigNumberish,
+      signature: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    addToken(
-      name: string,
-      token: string,
+    DECIMAL_FACTOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    acceptLoan(
+      hash: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    activateLoan(
+      hash: BytesLike,
+      activatedAt: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     allowedTokens(
       arg0: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    cancelLoan(
+      hash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    computeBaseInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    computeEarlyInterest(
+      hash: BytesLike,
+      atTimestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     createLoan(
       hash: BytesLike,
-      collateralName: string,
+      collateral_: string,
       beneficiary_: string,
-      dueIn_: BigNumberish,
+      dueSeconds_: BigNumberish,
       interest_: BigNumberish,
+      earlyInterest_: BigNumberish,
       fiatTotal_: BigNumberish,
       tokenTotal_: BigNumberish,
-      localCurrency_: string,
+      localCurrency_: BigNumberish,
       liquidationLimitPercentage_: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    initialize(
+    executeDueLoan(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    loans(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
+    initialize(
+      owner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    tokenAlias(
-      arg0: string,
+    owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    paidInFiat(
+      hash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    paidInToken(
+      hash: BytesLike,
+      tokenPrice: BigNumberish,
+      priceExpiry: BigNumberish,
+      bankSignature: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    renounceOwnership(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    updateAllowedToken(
+      token: string,
+      allowed: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    verifyPriceSignature(
+      signer: string,
+      price: BigNumberish,
+      validUntil: BigNumberish,
+      timestamp: BigNumberish,
+      signature: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };
