@@ -15,18 +15,19 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
   mapping(IERC20Upgradeable => bool) public allowedTokens;
 
-  mapping(bytes32 => IERC20Upgradeable) collateral;
-  mapping(bytes32 => address) lender;
-  mapping(bytes32 => address) beneficiary;
-  mapping(bytes32 => uint256) dueSeconds;
-  mapping(bytes32 => uint256) dueTimestamp;
-  mapping(bytes32 => uint256) interest;
-  mapping(bytes32 => uint256) earlyInterest;
-  mapping(bytes32 => uint256) fiatTotal;
-  mapping(bytes32 => LocalCurrencies) localCurrency;
-  mapping(bytes32 => uint256) liquidationLimitPercentage;
-  mapping(bytes32 => uint256) tokenTotal;
-  mapping(bytes32 => LoanState) state;
+  mapping(bytes32 => IERC20Upgradeable) public collateral;
+  mapping(bytes32 => address) public lender;
+  mapping(bytes32 => address) public beneficiary;
+  mapping(bytes32 => uint256) public dueSeconds;
+  mapping(bytes32 => uint256) public dueTimestamp;
+  mapping(bytes32 => uint256) public interest;
+  mapping(bytes32 => uint256) public earlyInterest;
+  mapping(bytes32 => uint256) public fiatTaxes;
+  mapping(bytes32 => uint256) public fiatTotal;
+  mapping(bytes32 => LocalCurrencies) public localCurrency;
+  mapping(bytes32 => uint256) public liquidationLimitPercentage;
+  mapping(bytes32 => uint256) public tokenTotal;
+  mapping(bytes32 => LoanState) public state;
 
   uint256 public constant DECIMAL_FACTOR = 10 ** 4;
 
@@ -66,6 +67,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     uint256 dueSeconds_,
     uint256 interest_,
     uint256 earlyInterest_,
+    uint256 fiatTaxes_,
     uint256 fiatTotal_,
     uint256 tokenTotal_,
     LocalCurrencies localCurrency_,
@@ -83,6 +85,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     dueSeconds[hash] = dueSeconds_;
     interest[hash] = interest_;
     earlyInterest[hash] = earlyInterest_;
+    fiatTaxes[hash] = fiatTaxes_;
     fiatTotal[hash] = fiatTotal_;
     localCurrency[hash] = localCurrency_;
     tokenTotal[hash] = tokenTotal_;
@@ -94,9 +97,17 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
   function cancelLoan(bytes32 hash) external {
     require(lender[hash] == msg.sender, "Invalid sender");
-    require(state[hash] == LoanState.CREATED, "Invalid loan state");
+    require(
+      state[hash] == LoanState.CREATED
+      || state[hash] == LoanState.COLLATERALIZED
+    , "Invalid loan state");
 
+    bool isCollateralized = state[hash] == LoanState.COLLATERALIZED;
     state[hash] = LoanState.CANCELLED;
+
+    if (isCollateralized) {
+      collateral[hash].transferFrom(address(this), beneficiary[hash], tokenTotal[hash]);
+    }
 
     emit LoanStatusUpdate(hash, state[hash]);
   }
@@ -134,7 +145,8 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
   function computeEarlyInterest(bytes32 hash, uint256 atTimestamp) public view returns(uint256) {
     require(state[hash] == LoanState.ACTIVE, "Invalid state");
-    if (dueTimestamp[hash] < atTimestamp) {
+    uint256 p25 = (dueSeconds[hash] * 25) / 100;
+    if (dueTimestamp[hash] - p25 < atTimestamp) {
       return 0;
     }
     return ((fiatTotal[hash] * earlyInterest[hash]) / DECIMAL_FACTOR) * (dueTimestamp[hash] - atTimestamp) / 365 days;
@@ -169,6 +181,8 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     } else {
       state[hash] = LoanState.PAID_TOKENS_DUE;
     }
+
+    fee = (fee * fiatTaxes[hash]) / DECIMAL_FACTOR;
 
     uint256 tokensForLender = ((fiatTotal[hash] + fee) * DECIMAL_FACTOR) / tokenPrice;
     require(tokenTotal[hash] > tokensForLender, "Loan dafualted");

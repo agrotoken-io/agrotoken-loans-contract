@@ -2,7 +2,7 @@ import { ethers, upgrades } from 'hardhat'
 import * as Contracts  from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { expect } from "chai";
-import { LocalCurrency } from "./types";
+import {LoanStateType, LocalCurrency} from "./types";
 import { parseUnits } from "./utils";
 
 
@@ -38,6 +38,7 @@ describe('AgrotokenLoan', function() {
                 dueSeconds: 60 * 24 * 60,
                 interest: parseUnits(0.4, 4),
                 earlyInterest: parseUnits(0.03, 4),
+                fiatTaxes: parseUnits(0.07, 4),
                 fiatTotal: 100,
                 tokenTotal: parseUnits(0.5, 4), //150% collateralization
                 localCurrency: LocalCurrency.ARS,
@@ -52,6 +53,7 @@ describe('AgrotokenLoan', function() {
                 loanData.dueSeconds,
                 loanData.interest,
                 loanData.earlyInterest,
+                loanData.fiatTaxes,
                 loanData.fiatTotal,
                 loanData.tokenTotal,
                 loanData.localCurrency,
@@ -67,6 +69,7 @@ describe('AgrotokenLoan', function() {
                 loanData.dueSeconds,
                 loanData.interest,
                 loanData.earlyInterest,
+                loanData.fiatTaxes,
                 loanData.fiatTotal,
                 loanData.tokenTotal,
                 loanData.localCurrency,
@@ -81,11 +84,17 @@ describe('AgrotokenLoan', function() {
                 loanData.dueSeconds,
                 loanData.interest,
                 loanData.earlyInterest,
+                loanData.fiatTaxes,
                 loanData.fiatTotal,
                 loanData.tokenTotal,
                 loanData.localCurrency,
                 loanData.liquidationLimitPercentage
             )).revertedWith('Loan already registered')
+        })
+        it("loan state should be CREATED", async () => {
+            expect(
+                await loan.state(loanData.hash)
+            ).eq(LoanStateType.CREATED)
         })
     })
 
