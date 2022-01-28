@@ -49,6 +49,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
   }
 
   event LoanStatusUpdate(bytes32 indexed loanHash, LoanState indexed status);
+  event LoanFees(bytes32 indexed loanHash, uint256 baseFee, uint256 earlyFee, uint256 tokenPrice, uint256 tokenTotal);
 
   function initialize(address owner) public initializer {
     __Ownable_init();
@@ -152,12 +153,20 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     return ((fiatTotal[hash] * earlyInterest[hash]) / DECIMAL_FACTOR) * (dueTimestamp[hash] - atTimestamp) / 365 days;
   }
 
-  function paidInFiat(bytes32 hash) external {
+  function paidInFiat(bytes32 hash, uint256 tokenPrice) external {
     require(lender[hash] == msg.sender, "Invalid sender");
     require(state[hash] == LoanState.ACTIVE, "Invalid state");
 
     uint256 maxDueTimestamp = dueTimestamp[hash] + 1 days;
     require(maxDueTimestamp >= block.timestamp, "Loan due");
+
+    emit LoanFees(
+      hash,
+      computeBaseInterest(hash, block.timestamp + 7 days),
+      computeEarlyInterest(hash, block.timestamp),
+      tokenPrice,
+      tokenTotal[hash]
+    );
 
     if (dueTimestamp[hash] >= block.timestamp) {
       state[hash] = LoanState.PAID_FIAT_EARLY;
@@ -218,6 +227,16 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     require(dueTimestamp[hash] > block.timestamp, "Loan not due");
 
     _paidInToken(hash, tokenPrice);
+  }
+
+  function executeLowCollateral(bytes32 hash, uint256 tokenPrice) external {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(
+      (tokenTotal[hash] * tokenPrice) / DECIMAL_FACTOR
+      <=
+      fiatTotal[hash] * ( DECIMAL_FACTOR + liquidationLimitPercentage[hash]) / DECIMAL_FACTOR
+    , "the loan is not low collateral");
+
   }
 
 }

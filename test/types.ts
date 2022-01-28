@@ -1,3 +1,5 @@
+import * as Contracts from "../typechain";
+
 export type CryptoCurrencySymbol = 'SOYA' | 'CORA' | 'WHEA'
 
 export enum LocalCurrency {
@@ -6,6 +8,7 @@ export enum LocalCurrency {
 }
 
 export enum LoanStateType {
+  NOT_EXISTENT = 0,
   CREATED = 1,
   COLLATERALIZED = 2,
   ACTIVE = 3,
@@ -14,5 +17,5 @@ export enum LoanStateType {
   PAID_TOKENS_DUE = 6,
   PAID_FIAT_EARLY = 7,
   PAID_TOKENS_EARLY = 8,
-  PAID_TOKENS_LOW_COLLATERAL = 9
+  PAID_TOKENS_LOW_COLLATERAL =9
 }

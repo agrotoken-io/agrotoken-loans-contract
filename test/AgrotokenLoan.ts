@@ -3,29 +3,37 @@ import * as Contracts  from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { expect } from "chai";
 import {LoanStateType, LocalCurrency} from "./types";
-import { parseUnits } from "./utils";
+import { parseUnits, daysToSeconds } from "./utils";
+import moment from "moment";
 
 
 describe('AgrotokenLoan', function() {
 
     let deployer: SignerWithAddress,
         owner: SignerWithAddress,
-        holder: SignerWithAddress,
         bank: SignerWithAddress,
         thirdparty: SignerWithAddress,
-        token: Contracts.Agrotoken,
+        accounts: SignerWithAddress[],
+        tokens: {
+            WHEA: Contracts.Agrotoken,
+            CORA: Contracts.Agrotoken,
+            SOYA: Contracts.Agrotoken
+        },
         loan: Contracts.AgrotokenLoan
 
     const tokenPrice = 300;
 
     before(async function () {
-        [deployer, owner, holder, bank, thirdparty] = await ethers.getSigners()
+        [deployer, owner, bank, thirdparty, ...accounts] = await ethers.getSigners()
 
         //@ts-ignore
-        token = await new Contracts.Agrotoken__factory(deployer).deploy()
-        loan = await upgrades.deployProxy(await ethers.getContractFactory("AgrotokenLoan"),[owner.address]) as Contracts.AgrotokenLoan
+        tokens = {
+            'WHEA': await new Contracts.Agrotoken__factory(deployer).deploy(),
+            'CORA': await new Contracts.Agrotoken__factory(deployer).deploy(),
+            'SOYA': await new Contracts.Agrotoken__factory(deployer).deploy()
+        }
 
-        await token.addNewGrainContract('' , ``, ethers.utils.parseUnits('100','ether'))
+        loan = await upgrades.deployProxy(await ethers.getContractFactory("AgrotokenLoan"),[owner.address]) as Contracts.AgrotokenLoan
     })
 
     describe("Create a loan", () => {
@@ -33,8 +41,8 @@ describe('AgrotokenLoan', function() {
         before(async () => {
             loanData = {
                 hash: ethers.utils.solidityKeccak256(['string'], ['Loan1']),
-                collateral: token.address,
-                beneficiary: holder.address,
+                collateral: tokens.WHEA.address,
+                beneficiary: thirdparty.address,
                 dueSeconds: 60 * 24 * 60,
                 interest: parseUnits(0.4, 4),
                 earlyInterest: parseUnits(0.03, 4),
@@ -61,7 +69,7 @@ describe('AgrotokenLoan', function() {
             )).revertedWith('Token not allowed')
         })
         it("create a loan should be possible", async () => {
-            await loan.connect(owner).updateAllowedToken(token.address, true)
+            await loan.connect(owner).updateAllowedToken(tokens.WHEA.address, true)
             await loan.createLoan(
                 loanData.hash,
                 loanData.collateral,
@@ -113,6 +121,79 @@ describe('AgrotokenLoan', function() {
 
             expect(isValid).eq(true)
         });
+    })
+
+    describe("La Basilicata", () => {
+        let loanData: any
+        before(async () => {
+            loanData = {
+                hash: ethers.utils.hexlify(ethers.utils.randomBytes(32)),
+                collateral: tokens.WHEA,
+                beneficiary: accounts[0],
+                dueSeconds: daysToSeconds(8),
+                interest: parseUnits(.4, 4),
+                earlyInterest: parseUnits(.03, 4),
+                fiatTaxes: parseUnits(.07, 4),
+                fiatTotal: parseUnits(100000, 4),
+                tokenTotal: parseUnits(4.62, 4),
+                localCurrency: LocalCurrency.ARS,
+                liquidationLimitPercentage: parseUnits(.15, 4),
+                tokenPrice: parseUnits(230, 4)
+            }
+            await loan.connect(owner).updateAllowedToken(tokens.WHEA.address, true)
+        })
+        it("create loan", async () => {
+            await loanData.collateral.addNewGrainContract('', '', loanData.tokenTotal)
+            await loanData.collateral.transfer(loanData.beneficiary.address, loanData.tokenTotal);
+            await loan.connect(bank).createLoan(
+                loanData.hash,
+                loanData.collateral.address,
+                loanData.beneficiary.address,
+                loanData.dueSeconds,
+                loanData.interest,
+                loanData.earlyInterest,
+                loanData.fiatTaxes,
+                loanData.fiatTotal,
+                loanData.tokenTotal,
+                loanData.localCurrency,
+                loanData.liquidationLimitPercentage
+            )
+        })
+        it("accept loan", async () => {
+            await loanData.collateral.connect(loanData.beneficiary).approve(loan.address,loanData.tokenTotal)
+            await expect(
+                loan.connect(loanData.beneficiary).acceptLoan(loanData.hash)
+            ).to.be.emit(loan, "LoanStatusUpdate").withArgs(loanData.hash, LoanStateType.COLLATERALIZED)
+            expect(
+                await loanData.collateral.balanceOf(loanData.beneficiary.address)
+            ).be.eq(0)
+        })
+        it("activate loan", async () => {
+            loanData.loanStartTimestamp = moment().subtract(1, 'days')
+            loanData.loanDueTimestamp = loanData.loanStartTimestamp.clone().add(8, 'days')
+            await expect(
+                loan.connect(bank).activateLoan(loanData.hash, loanData.loanStartTimestamp.unix())
+            ).emit(loan, "LoanStatusUpdate").withArgs(loanData.hash, LoanStateType.ACTIVE)
+            expect(
+                await loan.dueTimestamp(loanData.hash)
+            ).be.eq(loanData.loanDueTimestamp.unix())
+        })
+        it("pay with fiat", async () => {
+            await ethers.provider.send("evm_setNextBlockTimestamp", [loanData.loanDueTimestamp.unix()])
+
+            await expect(
+                loan.connect(bank).paidInFiat(loanData.hash, loanData.tokenPrice)
+            ).emit(loan, 'LoanFees').withArgs(
+                loanData.hash,
+                parseUnits(876.7123, 4),
+                0,
+                loanData.tokenPrice,
+                loanData.tokenTotal
+            )
+            expect(
+                await loanData.collateral.balanceOf(loanData.beneficiary.address)
+            ).be.eq(loanData.tokenTotal)
+        })
     })
 
 })

@@ -8,6 +8,7 @@ import '@nomiclabs/hardhat-ethers'
 import "solidity-coverage";
 import "hardhat-watcher";
 import "@nomiclabs/hardhat-etherscan";
+import "hardhat-tracer";
 import "./tasks";
 
 // You need to export an object to set up your config
