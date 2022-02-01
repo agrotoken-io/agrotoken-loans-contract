@@ -1,4 +1,4 @@
-import { ethers, upgrades } from 'hardhat'
+import { ethers, upgrades, time } from 'hardhat'
 import * as Contracts  from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { expect } from "chai";
@@ -16,7 +16,8 @@ describe('AgrotokenLoan', function() {
         thirdparty: SignerWithAddress,
         token: Contracts.Agrotoken,
         loanContract: Contracts.AgrotokenLoan,
-        loanData: any
+        loanData: any,
+        closeSnapshot: any
 
     before(async function () {
         [deployer, owner, beneficiary, bank, thirdparty] = await ethers.getSigners()
@@ -76,10 +77,15 @@ describe('AgrotokenLoan', function() {
         })
     })
 
-    describe("Collateralize", async () => {
+    describe("Collateralize", () => {
         let loan: Contracts.AgrotokenLoan
         before(() => {
             loan = loanContract.connect(beneficiary)
+        })
+        it("invoke from other account than beneficiary should fail", async () => {
+            await expect(
+                loanContract.connect(thirdparty).acceptLoan(loanData.hash)
+            ).revertedWith('Invalid sender')
         })
         it("collateralize without allowance should revert", async () => {
             await expect(
@@ -101,6 +107,68 @@ describe('AgrotokenLoan', function() {
             expect(
                 await loan.state(loanData.hash)
             ).be.eq(LoanStateType.COLLATERALIZED)
+        })
+    })
+
+    describe('Release', () => {
+        before(async () => {
+            closeSnapshot = await time.snapshot()
+        })
+        it("call from thirdparty shoud fail", async () => {
+            await expect(
+                loanContract.connect(beneficiary).releaseCollateral(loanData.hash)
+            ).revertedWith("Invalid sender")
+        })
+        it("call from bank should succeed", async () => {
+            await loanContract.connect(bank).releaseCollateral(loanData.hash)
+        })
+        it("loan state should be updated", async () => {
+            expect(
+                await loanContract.state(loanData.hash)
+            ).be.eq(LoanStateType.ENDED)
+        })
+        it("balances should be refelcted", async () => {
+            expect(
+                await token.balanceOf(loanContract.address)
+            ).be.eq(0)
+            expect(
+                await token.balanceOf(beneficiary.address)
+            ).be.eq(loanData.collateralAmount)
+        })
+        it("close loan twice should fail", async () => {
+            await expect(
+                loanContract.connect(bank).releaseCollateral(loanData.hash)
+            ).revertedWith("Invalid state")
+        })
+    })
+
+    describe("Distribute", () => {
+        before(async () => {
+            await time.revert(closeSnapshot)
+        })
+        it("call from thirdparty shoud fail", async () => {
+            await expect(
+                loanContract.connect(beneficiary).distributeCollateral(loanData.hash, parseUnits(1, 4))
+            ).revertedWith("Invalid sender")
+        })
+        it("call from bank should succeed", async () => {
+            await loanContract.connect(bank).distributeCollateral(loanData.hash, parseUnits(1, 4))
+        })
+        it("loan state should be updated", async () => {
+            expect(
+                await loanContract.state(loanData.hash)
+            ).be.eq(LoanStateType.ENDED)
+        })
+        it("balances should be refelcted", async () => {
+            expect(
+                await token.balanceOf(loanContract.address)
+            ).be.eq(0)
+            expect(
+                await token.balanceOf(beneficiary.address)
+            ).be.eq(parseUnits(9, 4))
+            expect(
+                await token.balanceOf(bank.address)
+            ).be.eq(parseUnits(1, 4))
         })
     })
 })
