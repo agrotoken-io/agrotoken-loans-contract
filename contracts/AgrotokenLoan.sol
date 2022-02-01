@@ -6,29 +6,84 @@ This work is unlicensed.
 pragma solidity 0.8.7;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
-contract AgrotokenLoan is Initializable {
-  address public admin;
-  mapping(address => bool) public allowedTokens;
-  mapping(string => address) public tokenAlias;
+contract AgrotokenLoan is Initializable, OwnableUpgradeable {
+  using ECDSAUpgradeable for bytes32;
 
-  function initialize() public initializer{
-    admin = msg.sender;
-    console.log("Deploying AgrotokenLoan", admin);
-    //   ID del préstamo
-    // Dirección pública del usuario.
-    // Monto del préstamo (total tokens a enviar, monto en tokens + aforo)
-    // Fecha de vencimiento prestamo
-    // Limite de liquidación
-    // Tasas de Interes (tasa de interes de prestamo a finalizacion o pago en fecha, tasa por pago anticiapado con un a funcion)
-    // Token
-    // Estado
+  mapping(IERC20Upgradeable => bool) public allowedTokens;
+
+  mapping(bytes32 => address) public lender;
+  mapping(bytes32 => address) public beneficiary;
+  mapping(bytes32 => IERC20Upgradeable) public collateral;
+  mapping(bytes32 => uint256) public collateralAmount;
+  mapping(bytes32 => LoanState) public state;
+
+  uint256 public constant DECIMAL_FACTOR = 10 ** 4;
+
+  enum LoanState {
+    NOT_EXISTENT,
+    CREATED,
+    COLLATERALIZED,
+    ENDED
   }
 
-  function addToken(string memory name, address token) public {   // adminOnly
-    require(token != address(0), "Token address cannot be zero address");
-    require(!allowedTokens[token] && tokenAlias[name]== address(0), "Token already added");
-    allowedTokens[token] = true;
-    tokenAlias[name] = token;
+  event LoanStatusUpdate(bytes32 indexed loanHash, LoanState indexed status);
+
+  function initialize(address owner) public initializer {
+    __Ownable_init();
+    _transferOwnership(owner);
+  }
+
+  function updateAllowedToken(IERC20Upgradeable token, bool allowed) public onlyOwner {   // adminOnly
+    require(token != IERC20Upgradeable(address(0)), "Token address cannot be zero address");
+    allowedTokens[token] = allowed;
+  }
+
+  function createLoan(bytes32 hash, address beneficiary_, IERC20Upgradeable collateral_, uint256 collateralAmount_) public {
+    require(allowedTokens[collateral_], "Token not allowed");
+    require(state[hash] == LoanState.NOT_EXISTENT, "Loan already registered");
+    require(beneficiary_ != address(0), "Beneficiary cannot be zero address");
+    require(beneficiary_ != msg.sender, "Beneficiary is invalid");
+    require(collateralAmount_!=0, "Amounts cannot be zero");
+
+    lender[hash] = msg.sender;
+    collateral[hash] = collateral_;
+    beneficiary[hash] = beneficiary_;
+    collateralAmount[hash] = collateralAmount_;
+    state[hash] = LoanState.CREATED;
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function acceptLoan(bytes32 hash) external {
+    require(beneficiary[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.CREATED, "Invalid loan state");
+
+    require(
+      collateral[hash].transferFrom(msg.sender, address(this), collateralAmount[hash])
+      , "Unable to transfer");
+
+    state[hash] = LoanState.COLLATERALIZED;
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function distributeCollateral(bytes32 hash, uint256 lenderAmount) public {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(state[hash] == LoanState.COLLATERALIZED, "Invalid state");
+    require(collateralAmount[hash] >= lenderAmount, "Invalid amount");
+
+    state[hash] = LoanState.ENDED;
+    collateral[hash].transfer(lender[hash], lenderAmount);
+    collateral[hash].transfer(beneficiary[hash], collateralAmount[hash] - lenderAmount);
+
+    emit LoanStatusUpdate(hash, state[hash]);
+  }
+
+  function releaseCollateral(bytes32 hash) external {
+    distributeCollateral(hash, 0);
   }
 }

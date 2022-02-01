@@ -8,6 +8,8 @@ import '@nomiclabs/hardhat-ethers'
 import "solidity-coverage";
 import "hardhat-watcher";
 import "@nomiclabs/hardhat-etherscan";
+import "hardhat-tracer";
+import "./extensions/time"
 import "./tasks";
 
 // You need to export an object to set up your config
@@ -32,7 +34,7 @@ export default {
     }
   },
   gasReporter: {
-    enabled: process.env.NO_GAS_REPORTER === '1' ? false : true,
+    enabled: process.env.NO_GAS_REPORTER === '1',
     currency: 'USD',
     coinmarketcap: process.env.CMC_TOKEN,
     gasPrice: 250
@@ -56,14 +58,15 @@ export default {
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
     },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/b299f67faca2443fa5708fbbd0a7e6aa`
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
     }
   },
   typechain: {
-    outDir: 'src/types',
-    target: 'ethers-v5',
-    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
-    externalArtifacts: ['externalArtifacts/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    outDir: 'typechain',
+    target: 'ethers-v5'
   },
 };
