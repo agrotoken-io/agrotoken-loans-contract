@@ -102,6 +102,9 @@ describe('AgrotokenLoan', function() {
             await token.addNewGrainContract('', '', loanData.collateralAmount)
             await token.transfer(beneficiary.address, loanData.collateralAmount)
             await loan.acceptLoan(loanData.hash)
+            expect(
+                await token.balanceOf(loan.address)
+            ).be.eq(loanData.collateralAmount)
         })
         it("loan state sould be collateralized", async () => {
             expect(
