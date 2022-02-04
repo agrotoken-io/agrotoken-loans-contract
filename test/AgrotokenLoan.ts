@@ -15,6 +15,7 @@ describe('AgrotokenLoan', function() {
         bank: SignerWithAddress,
         thirdparty: SignerWithAddress,
         token: Contracts.Agrotoken,
+        tokenSample: Contracts.Agrotoken[],
         loanContract: Contracts.AgrotokenLoan,
         loanData: any,
         closeSnapshot: any
@@ -25,7 +26,12 @@ describe('AgrotokenLoan', function() {
         //@ts-ignore
         token = await new Contracts.Agrotoken__factory(deployer).deploy()
 
-        loanContract = await upgrades.deployProxy(await ethers.getContractFactory("AgrotokenLoan"),[owner.address]) as Contracts.AgrotokenLoan
+        tokenSample = [
+            await new Contracts.Agrotoken__factory(deployer).deploy(),
+            await new Contracts.Agrotoken__factory(deployer).deploy()
+        ]
+
+        loanContract = await upgrades.deployProxy(await ethers.getContractFactory("AgrotokenLoan"),[owner.address, tokenSample.map(t => t.address)]) as Contracts.AgrotokenLoan
 
         loanData = {
             hash: ethers.utils.solidityKeccak256(['string'], ['Loan1']),
@@ -33,6 +39,17 @@ describe('AgrotokenLoan', function() {
             collateral: token.address,
             collateralAmount: parseUnits(10, 4)
         }
+    })
+
+    it("initial allowed tokens should be valid", async () => {
+        await Promise.all(tokenSample.map(async (token_) => {
+            expect(
+                await loanContract.allowedTokens(token_.address)
+            ).be.eq(true)
+        }))
+        expect(
+            await loanContract.allowedTokens(token.address)
+        ).be.eq(false)
     })
 
     describe("Create a loan", () => {
