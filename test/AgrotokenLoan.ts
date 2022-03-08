@@ -92,6 +92,13 @@ describe('AgrotokenLoan', function() {
                 loanData.collateralAmount
             )).revertedWith('Loan already registered')
         })
+        it("cancel a created loan should be possible", async () => {
+            const statusSnapshot = await time.snapshot()
+            await loan.cancelLoan(loanData.hash)
+            const loanStatus = await loan.state(loanData.hash)
+            await time.revert(statusSnapshot)
+            expect(loanStatus).be.eq(LoanStateType.CANCELED)
+        })
     })
 
     describe("Collateralize", () => {
@@ -128,6 +135,19 @@ describe('AgrotokenLoan', function() {
                 await loan.state(loanData.hash)
             ).be.eq(LoanStateType.COLLATERALIZED)
         })
+        it("cancel collateralized loan should be possible", async () => {
+            const statusSnapshot = await time.snapshot()
+            await expect(
+                () => loan.connect(bank).cancelLoan(loanData.hash)
+            ).to.changeTokenBalances(
+                token,
+                [loan                      , beneficiary              ],
+                [-loanData.collateralAmount, loanData.collateralAmount]
+            )
+            const loanStatus = await loan.state(loanData.hash)
+            await time.revert(statusSnapshot)
+            expect(loanStatus).be.eq(LoanStateType.CANCELED)
+        })
     })
 
     describe('Release', () => {
@@ -160,6 +180,11 @@ describe('AgrotokenLoan', function() {
                 loanContract.connect(bank).releaseCollateral(loanData.hash)
             ).revertedWith("Invalid state")
         })
+        it("cancel released loan should be not possible", async () => {
+            await expect(
+                loanContract.connect(bank).cancelLoan(loanData.hash)
+            ).revertedWith("Invalid state")
+        })
     })
 
     describe("Distribute", () => {
@@ -189,6 +214,11 @@ describe('AgrotokenLoan', function() {
             expect(
                 await token.balanceOf(bank.address)
             ).be.eq(parseUnits(1, 4))
+        })
+        it("cancel distributed loan should be not possible", async () => {
+            await expect(
+                loanContract.connect(bank).cancelLoan(loanData.hash)
+            ).revertedWith("Invalid state")
         })
     })
 })
