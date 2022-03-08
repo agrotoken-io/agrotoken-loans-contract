@@ -27,7 +27,8 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     NOT_EXISTENT,
     CREATED,
     COLLATERALIZED,
-    ENDED
+    ENDED,
+    CANCELED
   }
 
   event LoanStatusUpdate(bytes32 indexed loanHash, LoanState indexed status);
@@ -67,7 +68,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
     require(
       collateral[hash].transferFrom(msg.sender, address(this), collateralAmount[hash])
-      , "Unable to transfer");
+    , "Unable to transfer");
 
     state[hash] = LoanState.COLLATERALIZED;
 
@@ -81,12 +82,32 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
     state[hash] = LoanState.ENDED;
     collateral[hash].transfer(lender[hash], lenderAmount);
-    collateral[hash].transfer(beneficiary[hash], collateralAmount[hash] - lenderAmount);
+
+    uint256 beneficiaryAmount = collateralAmount[hash] - lenderAmount;
+    if (beneficiaryAmount > 0){
+      collateral[hash].transfer(beneficiary[hash], beneficiaryAmount);
+    }
 
     emit LoanStatusUpdate(hash, state[hash]);
   }
 
   function releaseCollateral(bytes32 hash) external {
     distributeCollateral(hash, 0);
+  }
+
+  function cancelLoan(bytes32 hash) external {
+    require(lender[hash] == msg.sender, "Invalid sender");
+    require(
+      (state[hash] == LoanState.CREATED)
+      ||
+      (state[hash] == LoanState.COLLATERALIZED)
+    , "Invalid state");
+    if (state[hash] == LoanState.COLLATERALIZED) {
+      state[hash] = LoanState.CANCELED;
+      collateral[hash].transfer(beneficiary[hash], collateralAmount[hash]);
+    } else {
+      state[hash] = LoanState.CANCELED;
+    }
+    emit LoanStatusUpdate(hash, state[hash]);
   }
 }
