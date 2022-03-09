@@ -4,15 +4,11 @@ SPDX-License-Identifier: UNLICENSED
 This work is unlicensed.
 */
 pragma solidity 0.8.7;
-import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
 contract AgrotokenLoan is Initializable, OwnableUpgradeable {
-  using ECDSAUpgradeable for bytes32;
-
   mapping(IERC20Upgradeable => bool) public allowedTokens;
 
   mapping(bytes32 => address) public lender;

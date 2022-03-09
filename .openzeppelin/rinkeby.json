@@ -203,37 +203,37 @@
             "contract": "AgrotokenLoan",
             "label": "allowedTokens",
             "type": "t_mapping(t_contract(IERC20Upgradeable)277,t_bool)",
-            "src": "contracts/AgrotokenLoan.sol:16"
+            "src": "contracts/AgrotokenLoan.sol:12"
           },
           {
             "contract": "AgrotokenLoan",
             "label": "lender",
             "type": "t_mapping(t_bytes32,t_address)",
-            "src": "contracts/AgrotokenLoan.sol:18"
+            "src": "contracts/AgrotokenLoan.sol:14"
           },
           {
             "contract": "AgrotokenLoan",
             "label": "beneficiary",
             "type": "t_mapping(t_bytes32,t_address)",
-            "src": "contracts/AgrotokenLoan.sol:19"
+            "src": "contracts/AgrotokenLoan.sol:15"
           },
           {
             "contract": "AgrotokenLoan",
             "label": "collateral",
             "type": "t_mapping(t_bytes32,t_contract(IERC20Upgradeable)277)",
-            "src": "contracts/AgrotokenLoan.sol:20"
+            "src": "contracts/AgrotokenLoan.sol:16"
           },
           {
             "contract": "AgrotokenLoan",
             "label": "collateralAmount",
             "type": "t_mapping(t_bytes32,t_uint256)",
-            "src": "contracts/AgrotokenLoan.sol:21"
+            "src": "contracts/AgrotokenLoan.sol:17"
           },
           {
             "contract": "AgrotokenLoan",
             "label": "state",
-            "type": "t_mapping(t_bytes32,t_enum(LoanState)1211)",
-            "src": "contracts/AgrotokenLoan.sol:22"
+            "type": "t_mapping(t_bytes32,t_enum(LoanState)613)",
+            "src": "contracts/AgrotokenLoan.sol:18"
           }
         ],
         "types": {
@@ -264,10 +264,10 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_mapping(t_bytes32,t_enum(LoanState)1211)": {
+          "t_mapping(t_bytes32,t_enum(LoanState)613)": {
             "label": "mapping(bytes32 => enum AgrotokenLoan.LoanState)"
           },
-          "t_enum(LoanState)1211": {
+          "t_enum(LoanState)613": {
             "label": "enum AgrotokenLoan.LoanState",
             "members": [
               "NOT_EXISTENT",
