@@ -33,20 +33,20 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
   event LoanStatusUpdate(bytes32 indexed loanHash, LoanState indexed status);
 
-  function initialize(address owner, IERC20Upgradeable[] memory allowedTokens_) public initializer {
+  function initialize(address owner, IERC20Upgradeable[] memory allowedTokens_) external initializer {
     __Ownable_init();
     _transferOwnership(owner);
-    for (uint256 i; i < allowedTokens_.length; i++){
+    for (uint256 i = 0; i < allowedTokens_.length; i++){
       allowedTokens[allowedTokens_[i]] = true;
     }
   }
 
-  function updateAllowedToken(IERC20Upgradeable token, bool allowed) public onlyOwner {   // adminOnly
+  function updateAllowedToken(IERC20Upgradeable token, bool allowed) external onlyOwner {   // adminOnly
     require(token != IERC20Upgradeable(address(0)), "Token address cannot be zero address");
     allowedTokens[token] = allowed;
   }
 
-  function createLoan(bytes32 hash, address beneficiary_, IERC20Upgradeable collateral_, uint256 collateralAmount_) public {
+  function createLoan(bytes32 hash, address beneficiary_, IERC20Upgradeable collateral_, uint256 collateralAmount_) external {
     require(allowedTokens[collateral_], "Token not allowed");
     require(state[hash] == LoanState.NOT_EXISTENT, "Loan already registered");
     require(beneficiary_ != address(0), "Beneficiary cannot be zero address");
@@ -65,14 +65,13 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
   function acceptLoan(bytes32 hash) external {
     require(beneficiary[hash] == msg.sender, "Invalid sender");
     require(state[hash] == LoanState.CREATED, "Invalid loan state");
+    state[hash] = LoanState.COLLATERALIZED;
+
+    emit LoanStatusUpdate(hash, state[hash]);
 
     require(
       collateral[hash].transferFrom(msg.sender, address(this), collateralAmount[hash])
     , "Unable to transfer");
-
-    state[hash] = LoanState.COLLATERALIZED;
-
-    emit LoanStatusUpdate(hash, state[hash]);
   }
 
   function distributeCollateral(bytes32 hash, uint256 lenderAmount) public {
@@ -80,15 +79,19 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     require(state[hash] == LoanState.COLLATERALIZED, "Invalid state");
     require(collateralAmount[hash] >= lenderAmount, "Invalid amount");
 
+    emit LoanStatusUpdate(hash, state[hash]);
+
     state[hash] = LoanState.ENDED;
-    collateral[hash].transfer(lender[hash], lenderAmount);
+    require(
+      collateral[hash].transfer(lender[hash], lenderAmount),
+    "Unable to transfer to lender");
 
     uint256 beneficiaryAmount = collateralAmount[hash] - lenderAmount;
     if (beneficiaryAmount > 0){
-      collateral[hash].transfer(beneficiary[hash], beneficiaryAmount);
+      require(
+        collateral[hash].transfer(beneficiary[hash], beneficiaryAmount),
+      "Unable to transfer to beneficiary");
     }
-
-    emit LoanStatusUpdate(hash, state[hash]);
   }
 
   function releaseCollateral(bytes32 hash) external {
@@ -102,12 +105,16 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
       ||
       (state[hash] == LoanState.COLLATERALIZED)
     , "Invalid state");
+
+    emit LoanStatusUpdate(hash, state[hash]);
+
     if (state[hash] == LoanState.COLLATERALIZED) {
       state[hash] = LoanState.CANCELED;
-      collateral[hash].transfer(beneficiary[hash], collateralAmount[hash]);
+      require(
+        collateral[hash].transfer(beneficiary[hash], collateralAmount[hash]),
+      "Unable to transfer to beneficiary");
     } else {
       state[hash] = LoanState.CANCELED;
     }
-    emit LoanStatusUpdate(hash, state[hash]);
   }
 }
