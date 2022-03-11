@@ -4,8 +4,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from "chai";
 import { LoanStateType } from "./types";
 import { parseUnits } from "./utils";
-import {describe} from "mocha";
-
 
 describe('AgrotokenLoan', function() {
 
