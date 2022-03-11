@@ -6,4 +6,3 @@ cache
 coverage*
 typechain
 yarn-error.log
-.openzeppelin
