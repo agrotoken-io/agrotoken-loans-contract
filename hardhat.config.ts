@@ -12,6 +12,20 @@ import "hardhat-tracer";
 import "./extensions/time"
 import "./tasks";
 
+const argv = require('yargs/yargs')()
+    .env('')
+    .options({
+      ci: {
+        type: 'boolean',
+        default: false,
+      },
+      coinmarketcap: {
+        alias: 'coinmarketcapApiKey',
+        type: 'string',
+      },
+    })
+    .argv;
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
@@ -34,10 +48,9 @@ export default {
     }
   },
   gasReporter: {
-    enabled: process.env.NO_GAS_REPORTER === '1',
     currency: 'USD',
-    coinmarketcap: process.env.CMC_TOKEN,
-    gasPrice: 250
+    outputFile: argv.ci ? 'gas-report.txt' : undefined,
+    coinmarketcap: argv.coinmarketcap,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_TOKEN
