@@ -55,12 +55,14 @@ export default {
   etherscan: {
     apiKey: process.env.ETHERSCAN_TOKEN
   },
-  solidity: "0.8.7",
-  settings: {
-    optimizer: {
-      enabled: true,
-      runs: 200
-    }
+  solidity: {
+    version: "0.8.7",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    },
   },
   networks: {
     hardhat: {
