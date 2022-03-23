@@ -75,13 +75,15 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
     require(state[hash] == LoanState.COLLATERALIZED, "Invalid state");
     require(collateralAmount[hash] >= lenderAmount, "Invalid amount");
 
+    state[hash] = LoanState.ENDED;
     emit LoanStatusUpdate(hash, state[hash]);
 
-    state[hash] = LoanState.ENDED;
-    require(
-      collateral[hash].transfer(lender[hash], lenderAmount),
-    "Unable to transfer to lender");
-
+    if (lenderAmount > 0){
+      require(
+        collateral[hash].transfer(lender[hash], lenderAmount),
+      "Unable to transfer to lender");
+    }
+    
     uint256 beneficiaryAmount = collateralAmount[hash] - lenderAmount;
     if (beneficiaryAmount > 0){
       require(
@@ -102,7 +104,7 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
       (state[hash] == LoanState.COLLATERALIZED)
     , "Invalid state");
 
-    emit LoanStatusUpdate(hash, state[hash]);
+    emit LoanStatusUpdate(hash, LoanState.CANCELED);
 
     if (state[hash] == LoanState.COLLATERALIZED) {
       state[hash] = LoanState.CANCELED;
