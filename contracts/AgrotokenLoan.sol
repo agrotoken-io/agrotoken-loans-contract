@@ -82,17 +82,16 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
         state[hash] = LoanState.ENDED;
         emit LoanStatusUpdate(hash, state[hash]);
 
-        if (lenderAmount > 0){
-            require(
-                collateral[hash].transfer(lender[hash], lenderAmount),
-                "Unable to transfer to lender");
+        if (lenderAmount > 0) {
+            require(collateral[hash].transfer(lender[hash], lenderAmount), "Unable to transfer to lender");
         }
 
         uint256 beneficiaryAmount = collateralAmount[hash] - lenderAmount;
-        if (beneficiaryAmount > 0){
-          require(
-            collateral[hash].transfer(beneficiary[hash], beneficiaryAmount),
-          "Unable to transfer to beneficiary");
+        if (beneficiaryAmount > 0) {
+            require(
+                collateral[hash].transfer(beneficiary[hash], beneficiaryAmount),
+                "Unable to transfer to beneficiary"
+            );
         }
     }
 
