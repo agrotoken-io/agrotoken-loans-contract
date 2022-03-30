@@ -285,6 +285,128 @@
           }
         }
       }
+    },
+    "41fc7d01034913f83a6bad41dcec38be397780ad6db834e4a434d6440a110693": {
+      "address": "0x534FE867e3eA323045ACc063Db9d7F5fdAd11158",
+      "txHash": "0xff25d608f57e415c596b170c5ae7309f79f63abe3ce6ca083879689a47fccb7c",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:87"
+          },
+          {
+            "contract": "AgrotokenLoan",
+            "label": "allowedTokens",
+            "type": "t_mapping(t_contract(IERC20Upgradeable)275,t_bool)",
+            "src": "contracts/AgrotokenLoan.sol:12"
+          },
+          {
+            "contract": "AgrotokenLoan",
+            "label": "lender",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "src": "contracts/AgrotokenLoan.sol:14"
+          },
+          {
+            "contract": "AgrotokenLoan",
+            "label": "beneficiary",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "src": "contracts/AgrotokenLoan.sol:15"
+          },
+          {
+            "contract": "AgrotokenLoan",
+            "label": "collateral",
+            "type": "t_mapping(t_bytes32,t_contract(IERC20Upgradeable)275)",
+            "src": "contracts/AgrotokenLoan.sol:16"
+          },
+          {
+            "contract": "AgrotokenLoan",
+            "label": "collateralAmount",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/AgrotokenLoan.sol:17"
+          },
+          {
+            "contract": "AgrotokenLoan",
+            "label": "state",
+            "type": "t_mapping(t_bytes32,t_enum(LoanState)607)",
+            "src": "contracts/AgrotokenLoan.sol:18"
+          }
+        ],
+        "types": {
+          "t_mapping(t_contract(IERC20Upgradeable)275,t_bool)": {
+            "label": "mapping(contract IERC20Upgradeable => bool)"
+          },
+          "t_contract(IERC20Upgradeable)275": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_mapping(t_bytes32,t_address)": {
+            "label": "mapping(bytes32 => address)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_bytes32,t_contract(IERC20Upgradeable)275)": {
+            "label": "mapping(bytes32 => contract IERC20Upgradeable)"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_bytes32,t_enum(LoanState)607)": {
+            "label": "mapping(bytes32 => enum AgrotokenLoan.LoanState)"
+          },
+          "t_enum(LoanState)607": {
+            "label": "enum AgrotokenLoan.LoanState",
+            "members": [
+              "NOT_EXISTENT",
+              "CREATED",
+              "COLLATERALIZED",
+              "ENDED",
+              "CANCELED"
+            ]
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
     }
   }
 }
