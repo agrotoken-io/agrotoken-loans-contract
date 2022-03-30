@@ -29,9 +29,9 @@ contract AgrotokenLoan is Initializable, OwnableUpgradeable {
 
     event LoanStatusUpdate(bytes32 indexed loanHash, LoanState indexed status);
 
-    function initialize(address owner, IERC20Upgradeable[] memory allowedTokens_) external initializer {
+    function initialize(address owner_, IERC20Upgradeable[] memory allowedTokens_) external initializer {
         __Ownable_init();
-        _transferOwnership(owner);
+        _transferOwnership(owner_);
         for (uint256 i = 0; i < allowedTokens_.length; i++) {
             allowedTokens[allowedTokens_[i]] = true;
         }
